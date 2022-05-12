@@ -20,7 +20,7 @@ import collections.abc
 import bmtrain as bmt
 from model_center.layer import LayerNorm
 from functools import partial
-
+from timm.models.layers import trunc_normal_, DropPath
 try:
     from torch import _assert
 except ImportError:
@@ -350,7 +350,6 @@ class VisionTransformer(bmt.DistributedModule):
             drop_path_rate (float): stochastic depth rate
             norm_layer: (bmt.DistributedModule): normalization layer
             dtype: Defaults to torch.float.
-            num_classes: number of categories for classifier
 
         """
         super().__init__()
@@ -381,7 +380,7 @@ class VisionTransformer(bmt.DistributedModule):
                             ]
                     )
         self.norm = norm_layer(embed_dim)
-        self.head = Linear(embed_dim, num_classes, bias=True)
+        self.head = Linear(embed_dim, num_classes, dtype=dtype)
     @torch.jit.ignore
     def no_weight_decay(self):
         return {'pos_embed', 'cls_token'}
@@ -396,7 +395,7 @@ class VisionTransformer(bmt.DistributedModule):
         x = self.pos_drop(x)
         x = self.blocks(x)
         x = self.norm(x)
-        x = self.head(x[:, 0])
+        x = self.head(x[:,0])
         return x
 
 
